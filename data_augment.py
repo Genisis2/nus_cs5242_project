@@ -73,7 +73,7 @@ class ParseAnno:
                 transformed_image = cv2.cvtColor(
                     transformed_image, cv2.COLOR_BGR2RGB)
                 cv2.imwrite(self.img_base_dir +
-                            f'/{img.split(".")[0]}_{j}.png', transformed_image)
+                            f'/{img.split(".")[0:-1]}_{j}.png', transformed_image)
                 transformed_bboxes = transformed['bboxes']
                 # Ensure bboxes are ints
                 transformed_bboxes = [[int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3]), int(bb[4])] 
