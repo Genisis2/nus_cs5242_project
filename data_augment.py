@@ -6,6 +6,20 @@ import os
 import pandas as pd
 from utils import plot_image_with_bb, read_image_cv2
 
+# Canonical class_to_id dict to pass to ParseAnno
+class_to_id = {
+    'burger': 1, 
+    'drinks': 2, 
+    'fries': 3
+}
+
+# Canonical id_to_class dict to use
+id_to_label = {
+    1: 'burger', 
+    2: 'drinks', 
+    3: 'fries', 
+    0: 'background'
+}
 
 class ParseAnno:
 
