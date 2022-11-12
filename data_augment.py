@@ -14,7 +14,7 @@ class_to_id = {
 }
 
 # Canonical id_to_class dict to use
-id_to_label = {
+id_to_class = {
     1: 'burger', 
     2: 'drinks', 
     3: 'fries', 
@@ -75,6 +75,9 @@ class ParseAnno:
                 cv2.imwrite(self.img_base_dir +
                             f'/{img.split(".")[0]}_{j}.png', transformed_image)
                 transformed_bboxes = transformed['bboxes']
+                # Ensure bboxes are ints
+                transformed_bboxes = [[int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3]), int(bb[4])] 
+                                for bb in transformed_bboxes]
 
                 temp_filenames.append(f'{img.split(".")[0]}_{j}.png')
                 temp_bbox_label.append(transformed_bboxes)
