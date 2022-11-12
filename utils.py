@@ -1,6 +1,7 @@
 import cv2
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import torch_snippets as snippets
 
 def save_img(img, path, size=(224, 224)):
 
@@ -21,6 +22,14 @@ def plot_image_with_bb(image, bboxs: list):
 
     plt.show()
 
+def plot_image_with_bb_and_label(image, bbox_labels: list, id_to_label: dict, title=None):
+    bbs = []
+    labels = []
+    for bbox_label in bbox_labels:
+        xmin, ymin, xmax, ymax, label = bbox_label
+        bbs.append((xmin, ymin, xmax, ymax))
+        labels.append(id_to_label[label])
+    snippets.show(image, bbs=bbs, texts=labels, sz=10, title=title)
 
 def get_iou_score(bbox, ssbox):
     xmin_bb, ymin_bb, xmax_bb, ymax_bb= bbox[:4]

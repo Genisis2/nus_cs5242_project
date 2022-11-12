@@ -1,0 +1,9 @@
+torch
+albumentations
+pandas
+opencv-python
+beautifulsoup4
+matplotlib
+torch_snippets
+torchvision
+numpy
