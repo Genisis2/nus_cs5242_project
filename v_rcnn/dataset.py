@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from data_augment import class_to_id
 import pickle
 
+IOU_POSITIVE_MATCH = 0.3
 MAX_RECT = 2000
 _SAMPLE_SEED = 42
 
@@ -112,7 +113,7 @@ class RCNNDataset(Dataset):
                 best_label = img_labels[best_bbox_idx].item()
 
                 # Ignore neutrals
-                if best_is_overlap and best_iou < 0.5:
+                if best_is_overlap and best_iou < IOU_POSITIVE_MATCH:
                     continue
 
                 # Get roi bounds as % of width and height
@@ -125,7 +126,7 @@ class RCNNDataset(Dataset):
                 roi_deltas.append(delta)
                 
                 # Positive match
-                if best_iou >= 0.5:
+                if best_iou >= IOU_POSITIVE_MATCH:
                     roi_classes.append(best_label)
                 # Negative match (background)
                 else:
