@@ -2,6 +2,7 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torch_snippets as snippets
+import numpy as np
 
 def save_img(img, path, size=(224, 224)):
 
@@ -48,16 +49,36 @@ def get_iou_score(bbox, ssbox):
 
     return iou, is_overlap
 
-def get_ss_boxes(image: bytes, ):
+def get_ss_boxes(image: bytes, dim_limit=500) -> np.ndarray:
+
+    # If limit of dimension is set
+    scale = None # Dummy value in case resize doesn't happen
+    if dim_limit is not None:
+        # Limit the size of the larger side of the image
+        h, w, _ = image.shape
+        longer_dim = max(h,w)
+        # Downscale. Will take too long to calculate ss_boxes with this
+        if longer_dim > dim_limit:
+            scale = dim_limit / longer_dim
+            image = cv2.resize(image, (0,0), fx=scale, fy=scale)
+
     ss = cv2.ximgproc.segmentation.createSelectiveSearchSegmentation()
     ss.setBaseImage(image)
     ss.switchToSelectiveSearchFast()
     rects = ss.process()
-    ssbox= []
+
+    # Process to final ssboxes return
+    ssboxes= []
     for (x, y, w, h) in rects:
-        ssbox.append((x, y, x + w, y + h, 0))
+        ssbox = (x, y, x + w, y + h, 0)
+        # Scale back up t orig dimensions
+        if scale is not None:
+            ssbox = (int(ssbox[0]/scale), int(ssbox[1]/scale), 
+                    int(ssbox[2]/scale), int(ssbox[3]/scale), 
+                    ssbox[4])
+        ssboxes.append(ssbox)
         
-    return ssbox
+    return np.array(ssboxes)
 
 def read_image_cv2(path: str) -> bytes:
     image = cv2.imread(path)

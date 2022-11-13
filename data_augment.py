@@ -10,7 +10,8 @@ from utils import plot_image_with_bb, read_image_cv2
 class_to_id = {
     'burger': 1, 
     'drinks': 2, 
-    'fries': 3
+    'fries': 3,
+    'background': 0
 }
 
 # Canonical id_to_class dict to use
