@@ -80,7 +80,7 @@ class ParseAnno:
                 transformed_bboxes = [[int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3]), int(bb[4])] 
                                 for bb in transformed_bboxes]
 
-                temp_filenames.append(f'{img.split(".")[0]}_{j}.png')
+                temp_filenames.append(f"{'.'.join(img.split('.')[0:-1])}_{j}.png")
                 temp_bbox_label.append(transformed_bboxes)
                 # plot_image_with_bb(transformed_image, transformed_bboxes)
 
