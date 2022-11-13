@@ -1,7 +1,7 @@
 torch
 albumentations
 pandas
-opencv-python
+opencv-contrib-python
 beautifulsoup4
 matplotlib
 torch_snippets
