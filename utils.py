@@ -81,7 +81,10 @@ def get_ss_boxes(image: bytes, dim_limit=500) -> np.ndarray:
     return np.array(ssboxes)
 
 def read_image_cv2(path: str) -> bytes:
-    image = cv2.imread(path)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    try:
+        image = cv2.imread(path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    except Exception as e:
+        print(f"Erroring image filepath: {path}")
+        raise e
     return image
