@@ -59,11 +59,13 @@ class RCNNDataset(Dataset):
 
         total_files = len(filenames) # Used for tracking progress
 
-        _perf_counter_start = time.perf_counter()
+        _func_counter_start = time.perf_counter()
         print(f"========== Processing {total_files} files for R-CNN dataset start ==========")
         
         # Process each image
         for idx, img_fn in enumerate(filenames):
+
+            _loop_counter_start = time.perf_counter()
 
             # Open image
             img = read_image_cv2(self.img_base_dir + img_fn)
@@ -138,12 +140,12 @@ class RCNNDataset(Dataset):
             
             # Log current progress
             fn_display_name = img_fn[:15] + "..." if len(img_fn) > 15 else img_fn
-            _perf_counter_elapsed_time = time.perf_counter() - _perf_counter_start
-            print(f"Processed {idx+1}/{total_files} file {fn_display_name}. Time elapsed: {_perf_counter_elapsed_time}")
+            _loop_counter_elapsed_time = time.perf_counter() - _loop_counter_start
+            print(f"Processed {idx+1}/{total_files} file {fn_display_name}. Time elapsed: {_loop_counter_elapsed_time}")
 
         # Log total time elapsed
-        _perf_counter_elapsed_time = time.perf_counter() - _perf_counter_start
-        print(f"========== Finished processing data for R-CNN dataset. Time elapsed: {_perf_counter_elapsed_time} ==========")
+        _func_counter_elapsed_time = time.perf_counter() - _func_counter_start
+        print(f"========== Finished processing data for R-CNN dataset. Total time elapsed: {_func_counter_elapsed_time} ==========")
 
     def save(self, save_fp:str=None):
         """Saves the data held in this object"""
