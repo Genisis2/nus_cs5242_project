@@ -13,13 +13,13 @@ N_EPOCHS = 5
 BATCH_SIZE = 32
 LR = 1e-3
 
-def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS, 
+def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS, 
                 batch_size=BATCH_SIZE, learning_rate=LR) -> Tuple[nn.Module, Report]:
     """Trains a vanilla R-CNN model
     
     Parameters:
-    - rcnn_model
-        - RCNN model to train
+    - fastrcnn_model
+        - FastRCNN model to train
     - train_ds
         - Dataset to train on
     - num_epochs
@@ -50,7 +50,7 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
                     collate_fn=train_ds.collate_fn,
                     drop_last=False)
 
-    optimizer = torch.optim.SGD(rcnn_model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.SGD(fastrcnn_model.parameters(), lr=learning_rate)
 
     # Start training
     log =  Report(num_epochs)
@@ -62,15 +62,15 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
         for inputs in train_loader:
             
             # Unpack batch
-            roi_crops, roi_classes, roi_deltas = inputs
+            images, rois, roi_src_idxs, roi_classes, roi_deltas = inputs
             
             # Train model on batch
-            rcnn_model.train()
+            fastrcnn_model.train()
             optimizer.zero_grad()
-            _roi_classes, _roi_deltas = rcnn_model(roi_crops)
+            _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
             
             # Calculate loss and bp
-            loss, loc_loss, regr_loss = rcnn_model.calc_loss(
+            loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
                     _roi_classes, _roi_deltas, roi_classes, roi_deltas)
             loss.backward()
             optimizer.step()
@@ -90,14 +90,14 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
         for inputs in val_loader:
             
             # Unpack batch
-            roi_crops, roi_classes, roi_deltas = inputs
+            images, rois, roi_src_idxs, roi_classes, roi_deltas = inputs
             with torch.no_grad():
                 # Get predictions
-                rcnn_model.eval()
-                _roi_classes, _roi_deltas = rcnn_model(roi_crops)
+                fastrcnn_model.eval()
+                _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
                 
                 # Calculate loss
-                loss, loc_loss, regr_loss = rcnn_model.calc_loss(
+                loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
                         _roi_classes, _roi_deltas, roi_classes, roi_deltas)
                 
                 # Calculate accuracy of predictions

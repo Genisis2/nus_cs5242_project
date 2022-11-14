@@ -178,6 +178,23 @@ class RCNNDataset(Dataset):
             pickle.dump(data, fs)
 
     def __getitem__(self, img_idx):
+        raise NotImplementedError() # Override in subclasses
+
+    def collate_fn(self, batch):
+        raise NotImplementedError() # Override in subclasses
+    
+    def __len__(self): 
+        return len(self.filenames)
+
+class VRCNNDataset(RCNNDataset):
+    """Variant of RCNNDataset for vanilla RCNN
+
+    Main property of this dataset is the idx to img,roi mapping
+    """
+    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None):
+        super().__init__(img_base_dir, data_df, saved_ds_processing_fp)
+
+    def __getitem__(self, img_idx):
         
         # Get the image at this idx
         img_filepath = os.path.join(self.img_base_dir, self.filenames[img_idx])
@@ -269,8 +286,8 @@ def create_train_test_dataset(img_root_dir:str, pd_csv_path:str, limit:int=None)
     )
 
     # Create datasets for train and test
-    train_dataset = RCNNDataset(img_root_dir, train_data_df)
-    test_dataset = RCNNDataset(img_root_dir, test_data_df)
+    train_dataset = VRCNNDataset(img_root_dir, train_data_df)
+    test_dataset = VRCNNDataset(img_root_dir, test_data_df)
 
     return train_dataset, test_dataset
 
@@ -290,7 +307,7 @@ def create_train_test_dataset_from_pickle(
     - train_dataset, train_dataset both of type VRCNNDataset
     """
     # Create datasets for train and test
-    train_dataset = RCNNDataset(img_root_dir, None, pickle_train_ds)
-    test_dataset = RCNNDataset(img_root_dir, None, pickle_test_ds)
+    train_dataset = VRCNNDataset(img_root_dir, None, pickle_train_ds)
+    test_dataset = VRCNNDataset(img_root_dir, None, pickle_test_ds)
 
     return train_dataset, test_dataset
