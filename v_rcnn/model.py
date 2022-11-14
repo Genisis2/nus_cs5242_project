@@ -36,11 +36,11 @@ class RCNN(nn.Module):
 
         # BBox offset linear regressor
         self.bbox = nn.Sequential(
-              nn.Linear(4096, 512),
-              nn.ReLU(),
-              nn.Linear(512, 4),
-              nn.Tanh(),
-            )
+            nn.Linear(4096, 512),
+            nn.ReLU(),
+            nn.Linear(512, 4),
+            nn.Tanh(),
+        )
 
         self.bb_loss_weight = 10
         self.cel = nn.CrossEntropyLoss()
