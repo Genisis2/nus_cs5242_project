@@ -4,10 +4,11 @@ import torch
 from data_augment import class_to_id, id_to_class
 from torchvision import models
 from utils import device
+from torchvision.ops import RoIPool
 
 background_class = class_to_id['background']
 
-class RCNN(nn.Module):
+class FastRCNN(nn.Module):
 
     def __init__(self):
         super().__init__()
@@ -20,9 +21,14 @@ class RCNN(nn.Module):
             param.requires_grad = False
         model.eval().to(device)
         self.backbone = model
+
+        # ROIPool
+        roi_output_size = (7,7) # height, width
+        roi_spatial_scale = 14 / 224  # 0.0625 scaling of the original image
+        self.roipool = RoIPool(output_size=roi_output_size, spatial_scale=roi_spatial_scale) # 224/14 = 16; 1/16 = 0.0625
         
-        # Flattened shape of output from resnet50
-        feature_dim = 1024 * 14 * 14
+        # Flattened shape of output from RoiPool
+        feature_dim = 1024 * roi_output_size[0] * roi_output_size[1]
         # 2 FC layers
         self.fc1 = nn.Linear(feature_dim, 4096)
         self.fc2 = nn.Linear(4096, 4096)
@@ -46,14 +52,21 @@ class RCNN(nn.Module):
         self.cel = nn.CrossEntropyLoss()
         self.sl1 = nn.L1Loss()
 
-    def forward(self, input):
+    def forward(self, images, rois, roi_src_idxs):
 
         # Extract features using resnet backbone
-        fmap = self.backbone(input)
+        fmap = self.backbone(images)
+
+        # Get roi coord in shape of 224, the resized input image
+        rois = (rois * 224).int()
+        # Add the batch_idx as an element to rois to satisfy RoiPool inputs
+        rois = torch.concat((roi_src_idxs.unsqueeze(1), rois), -1)
+        roi_pool_output = self.roipool(fmap, rois)
+        # Flatten output for passing through FC layers
+        roi_pool_output_flat = torch.flatten(roi_pool_output, start_dim = 1)
         
         # Pass features through FC layers
-        fmap_flat = torch.flatten(fmap, start_dim = 1)
-        fc1_op = self.fc1(fmap_flat) 
+        fc1_op = self.fc1(roi_pool_output_flat) 
         fc1_op = self.relu(fc1_op)
         fc2_op = self.fc2(fc1_op)
         fc2_op = self.relu(fc2_op)
