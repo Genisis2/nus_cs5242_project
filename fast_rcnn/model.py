@@ -35,10 +35,7 @@ class FastRCNN(nn.Module):
         self.relu = nn.ReLU()
 
         # Classifier to label
-        self.cls_score = nn.Sequential(
-            nn.Linear(4096, len(id_to_class)),
-            nn.Softmax(-1)
-        )
+        self.cls_score = nn.Linear(4096, len(id_to_class))
 
         # BBox offset linear regressor
         self.bbox = nn.Sequential(
@@ -58,7 +55,7 @@ class FastRCNN(nn.Module):
         fmap = self.backbone(images)
 
         # Get roi coord in shape of 224, the resized input image
-        rois = (rois * 224).int()
+        rois = rois * 224
         # Add the batch_idx as an element to rois to satisfy RoiPool inputs
         rois = torch.concat((roi_src_idxs.unsqueeze(1), rois), -1)
         roi_pool_output = self.roipool(fmap, rois)
