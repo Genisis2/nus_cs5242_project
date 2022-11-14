@@ -70,17 +70,17 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
             _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
             
             # Calculate loss and bp
-            loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
+            loss, cls_loss, regr_loss = fastrcnn_model.calc_loss(
                     _roi_classes, _roi_deltas, roi_classes, roi_deltas)
             loss.backward()
             optimizer.step()
 
             # Calculate accuracy of predictions
-            _, best_roi_class_pred  = _roi_classes.max(-1)
-            accs = (roi_classes == best_roi_class_pred).cpu().numpy()
+            _, best_roi_class_preds  = _roi_classes.max(-1)
+            accs = (roi_classes == best_roi_class_preds).cpu().numpy()
 
             pos += 1 / total_inputs
-            log.record(pos, trn_loss=loss.item(), trn_loc_loss=loc_loss, 
+            log.record(pos, trn_loss=loss.item(), trn_cls_loss=cls_loss, 
                     trn_regr_loss=regr_loss, 
                     trn_acc=accs.mean(), end='\r')
         
@@ -97,15 +97,15 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
                 _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
                 
                 # Calculate loss
-                loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
+                loss, cls_loss, regr_loss = fastrcnn_model.calc_loss(
                         _roi_classes, _roi_deltas, roi_classes, roi_deltas)
                 
                 # Calculate accuracy of predictions
-                _, best_roi_class_pred  = _roi_classes.max(-1)
-                accs = (roi_classes == best_roi_class_pred).cpu().numpy()
+                _, best_roi_class_preds  = _roi_classes.max(-1)
+                accs = (roi_classes == best_roi_class_preds).cpu().numpy()
             
             pos += 1 / total_inputs
-            log.record(pos, val_loss=loss.item(), val_loc_loss=loc_loss, 
+            log.record(pos, val_loss=loss.item(), val_cls_loss=cls_loss, 
                     val_regr_loss=regr_loss, 
                     val_acc=accs.mean(), end='\r')
 
