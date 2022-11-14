@@ -29,10 +29,7 @@ class RCNN(nn.Module):
         self.relu = nn.ReLU()
 
         # Classifier to label
-        self.cls_score = nn.Sequential(
-            nn.Linear(4096, len(id_to_class)),
-            nn.Softmax(-1)
-        )
+        self.cls_score = nn.Linear(4096, len(id_to_class))
 
         # BBox offset linear regressor
         self.bbox = nn.Sequential(
