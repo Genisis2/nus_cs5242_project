@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import torch_snippets as snippets
 import numpy as np
+import torch 
+
+# Central checker for device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def save_img(img, path, size=(224, 224)):
 
