@@ -77,25 +77,35 @@ class FastRCNN(nn.Module):
 
     def calc_loss(self, pred_classes, pred_bb_offset, gt_classes, gt_bb_offset):
 
-        # Get classification loss
-        classification_loss = self.cel(pred_classes, gt_classes)
-
-        # Keep only bb's that aren't background
-        bb_idxs = torch.where(gt_classes != background_class)[0]
-        # If have bb's that aren't background, calculate bb offset loss
-        if len(bb_idxs) > 0:
-            pred_bb_offset = pred_bb_offset[bb_idxs]
-            gt_bb_offset = gt_bb_offset[bb_idxs]
+        detection_loss = self.cel(pred_classes, gt_classes)
+        ixs, = torch.where(gt_classes != 0)
+        pred_bb_offset = pred_bb_offset[ixs]
+        gt_bb_offset = gt_bb_offset[ixs]
+        if len(ixs) > 0:
             regression_loss = self.sl1(pred_bb_offset, gt_bb_offset)
-        # Else no bb offset regression loss for all-backgound proposals
+            return detection_loss + self.bb_loss_weight * regression_loss, detection_loss.detach(), regression_loss.detach()
         else:
-            regression_loss = torch.zeros(1, device=device)
+            regression_loss = 0
+            return detection_loss + self.bb_loss_weight * regression_loss, detection_loss.detach(), regression_loss
+        # # Get classification loss
+        # classification_loss = self.cel(pred_classes, gt_classes)
 
-        # Calculate all_loss
-        all_loss = classification_loss + self.bb_loss_weight * regression_loss
+        # # Keep only bb's that aren't background
+        # bb_idxs = torch.where(gt_classes != background_class)[0]
+        # # If have bb's that aren't background, calculate bb offset loss
+        # if len(bb_idxs) > 0:
+        #     pred_bb_offset = pred_bb_offset[bb_idxs]
+        #     gt_bb_offset = gt_bb_offset[bb_idxs]
+        #     regression_loss = self.sl1(pred_bb_offset, gt_bb_offset)
+        # # Else no bb offset regression loss for all-backgound proposals
+        # else:
+        #     regression_loss = torch.zeros(1, device=device)
 
-        # Detach non-all loss losses
-        classification_loss = classification_loss.detach()
-        regression_loss = regression_loss.detach()
+        # # Calculate all_loss
+        # all_loss = classification_loss + self.bb_loss_weight * regression_loss
 
-        return all_loss, classification_loss, regression_loss
+        # # Detach non-all loss losses
+        # classification_loss = classification_loss.detach()
+        # regression_loss = regression_loss.detach()
+
+        # return all_loss, classification_loss, regression_loss

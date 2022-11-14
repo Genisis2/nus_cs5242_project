@@ -13,6 +13,31 @@ N_EPOCHS = 5
 BATCH_SIZE = 32
 LR = 1e-3
 
+def decode(_y):
+    _, preds = _y.max(-1)
+    return preds
+
+def train_batch(inputs, model, optimizer, criterion):
+    input, rois, rixs, clss, deltas = inputs
+    model.train()
+    optimizer.zero_grad()
+    _clss, _deltas = model(input, rois, rixs)
+    loss, loc_loss, regr_loss = criterion(_clss, _deltas, clss, deltas)
+    accs = clss == decode(_clss)
+    loss.backward()
+    optimizer.step()
+    return loss.detach(), loc_loss, regr_loss, accs.cpu().numpy()
+
+def validate_batch(inputs, model, criterion):
+    input, rois, rixs, clss, deltas = inputs
+    with torch.no_grad():
+        model.eval()
+        _clss,_deltas = model(input, rois, rixs)
+        loss, loc_loss, regr_loss = criterion(_clss, _deltas, clss, deltas)
+        _clss = decode(_clss)
+        accs = clss == _clss
+    return _clss, _deltas, loss.detach(), loc_loss, regr_loss, accs.cpu().numpy()
+
 def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS, 
                 batch_size=BATCH_SIZE, learning_rate=LR) -> Tuple[nn.Module, Report]:
     """Trains a vanilla R-CNN model
@@ -51,64 +76,32 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
                     drop_last=False)
 
     optimizer = torch.optim.SGD(fastrcnn_model.parameters(), lr=learning_rate)
+    criterion = fastrcnn_model.calc_loss
 
     # Start training
     log =  Report(num_epochs)
     for epoch in range(num_epochs):
 
-        # Train model
-        total_inputs = len(train_loader)
-        pos = epoch
-        for inputs in train_loader:
+        # _n = len(train_loader)
+        # for ix, inputs in enumerate(train_loader):
+        #     loss, loc_loss, regr_loss, accs = train_batch(inputs, fastrcnn_model, 
+        #                                                 optimizer, criterion)
+        #     pos = (epoch + (ix+1)/_n)
+        #     log.record(pos, trn_loss=loss.item(), trn_loc_loss=loc_loss, 
+        #             trn_regr_loss=regr_loss, 
+        #             trn_acc=accs.mean(), end='\r')
             
-            # Unpack batch
-            images, rois, roi_src_idxs, roi_classes, roi_deltas = inputs
-            
-            # Train model on batch
-            fastrcnn_model.train()
-            optimizer.zero_grad()
-            _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
-            
-            # Calculate loss and bp
-            loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
-                    _roi_classes, _roi_deltas, roi_classes, roi_deltas)
-            loss.backward()
-            optimizer.step()
-
-            # Calculate accuracy of predictions
-            _, best_roi_class_pred  = _roi_classes.max(-1)
-            accs = (roi_classes == best_roi_class_pred).cpu().numpy()
-
-            pos += 1 / total_inputs
-            log.record(pos, trn_loss=loss.item(), trn_loc_loss=loc_loss, 
-                    trn_regr_loss=regr_loss, 
-                    trn_acc=accs.mean(), end='\r')
-        
-        # Validate
-        total_inputs = len(val_loader)
-        pos = epoch
-        for inputs in val_loader:
-            
-            # Unpack batch
-            images, rois, roi_src_idxs, roi_classes, roi_deltas = inputs
-            with torch.no_grad():
-                # Get predictions
-                fastrcnn_model.eval()
-                _roi_classes, _roi_deltas = fastrcnn_model(images, rois, roi_src_idxs)
-                
-                # Calculate loss
-                loss, loc_loss, regr_loss = fastrcnn_model.calc_loss(
-                        _roi_classes, _roi_deltas, roi_classes, roi_deltas)
-                
-                # Calculate accuracy of predictions
-                _, best_roi_class_pred  = _roi_classes.max(-1)
-                accs = (roi_classes == best_roi_class_pred).cpu().numpy()
-            
-            pos += 1 / total_inputs
+        _n = len(val_loader)
+        for ix,inputs in enumerate(val_loader):
+            _clss, _deltas, loss, \
+            loc_loss, regr_loss, accs = validate_batch(inputs, 
+                                                    fastrcnn_model, criterion)
+            pos = (epoch + (ix+1)/_n)
             log.record(pos, val_loss=loss.item(), val_loc_loss=loc_loss, 
                     val_regr_loss=regr_loss, 
                     val_acc=accs.mean(), end='\r')
-
+    
+    print("train_acc:", np.mean([v for pos, v in log.trn_acc]), "|val_acc:", np.mean([v for pos, v in log.val_acc]))
     return log
 
 
