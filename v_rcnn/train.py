@@ -7,6 +7,7 @@ from sklearn.model_selection import KFold
 from v_rcnn.dataset import _SAMPLE_SEED
 from v_rcnn.model import RCNN
 from utils import device
+import math
 
 N_EPOCHS = 5
 BATCH_SIZE = 32
@@ -33,7 +34,10 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
     """
 
     # Split to train and validation
-    train_subset, val_subset = random_split(train_ds, [0.9, 0.1], 
+    total_ds_len = len(train_ds)
+    train_ds_len = math.floor(0.9*len(total_ds_len))
+    val_ds_len = total_ds_len - train_ds_len
+    train_subset, val_subset = random_split(train_ds, [train_ds_len, val_ds_len], 
             generator=torch.Generator().manual_seed(_SAMPLE_SEED))
 
     # Define data loaders for training and validation data
