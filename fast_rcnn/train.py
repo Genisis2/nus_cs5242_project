@@ -82,14 +82,14 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
     log =  Report(num_epochs)
     for epoch in range(num_epochs):
 
-        # _n = len(train_loader)
-        # for ix, inputs in enumerate(train_loader):
-        #     loss, loc_loss, regr_loss, accs = train_batch(inputs, fastrcnn_model, 
-        #                                                 optimizer, criterion)
-        #     pos = (epoch + (ix+1)/_n)
-        #     log.record(pos, trn_loss=loss.item(), trn_loc_loss=loc_loss, 
-        #             trn_regr_loss=regr_loss, 
-        #             trn_acc=accs.mean(), end='\r')
+        _n = len(train_loader)
+        for ix, inputs in enumerate(train_loader):
+            loss, loc_loss, regr_loss, accs = train_batch(inputs, fastrcnn_model, 
+                                                        optimizer, criterion)
+            pos = (epoch + (ix+1)/_n)
+            log.record(pos, trn_loss=loss.item(), trn_loc_loss=loc_loss, 
+                    trn_regr_loss=regr_loss, 
+                    trn_acc=accs.mean(), end='\r')
             
         _n = len(val_loader)
         for ix,inputs in enumerate(val_loader):
