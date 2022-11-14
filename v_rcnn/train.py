@@ -6,18 +6,19 @@ from torch_snippets import *
 from sklearn.model_selection import KFold
 from v_rcnn.dataset import _SAMPLE_SEED
 from v_rcnn.model import RCNN
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from utils import device
 
 N_EPOCHS = 5
 BATCH_SIZE = 32
 LR = 1e-3
 
-def train_vrcnn(train_ds, num_epochs=N_EPOCHS, 
+def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS, 
                 batch_size=BATCH_SIZE, learning_rate=LR) -> Tuple[nn.Module, Report]:
     """Trains a vanilla R-CNN model
     
     Parameters:
+    - rcnn_model
+        - RCNN model to train
     - train_ds
         - Dataset to train on
     - num_epochs
@@ -28,7 +29,6 @@ def train_vrcnn(train_ds, num_epochs=N_EPOCHS,
         - Learning rate to use while training. Default to 1e-3
 
     Returns:
-    - trained model
     - log report
     """
 
@@ -46,8 +46,8 @@ def train_vrcnn(train_ds, num_epochs=N_EPOCHS,
                     collate_fn=train_ds.collate_fn,
                     drop_last=False)
 
-    rcnn = RCNN().to(device)
-    optimizer = torch.optim.SGD(rcnn.parameters(), lr=learning_rate)
+    rcnn_model = RCNN().to(device)
+    optimizer = torch.optim.SGD(rcnn_model.parameters(), lr=learning_rate)
 
     # Start training
     log =  Report(num_epochs)
@@ -62,12 +62,12 @@ def train_vrcnn(train_ds, num_epochs=N_EPOCHS,
             roi_crops, roi_classes, roi_deltas = inputs
             
             # Train model on batch
-            rcnn.train()
+            rcnn_model.train()
             optimizer.zero_grad()
-            _roi_classes, _roi_deltas = rcnn(roi_crops)
+            _roi_classes, _roi_deltas = rcnn_model(roi_crops)
             
             # Calculate loss and bp
-            loss, loc_loss, regr_loss = rcnn.calc_loss(
+            loss, loc_loss, regr_loss = rcnn_model.calc_loss(
                     _roi_classes, _roi_deltas, roi_classes, roi_deltas)
             loss.backward()
             optimizer.step()
@@ -90,11 +90,11 @@ def train_vrcnn(train_ds, num_epochs=N_EPOCHS,
             roi_crops, roi_classes, roi_deltas = inputs
             with torch.no_grad():
                 # Get predictions
-                rcnn.eval()
-                _roi_classes, _roi_deltas = rcnn(roi_crops)
+                rcnn_model.eval()
+                _roi_classes, _roi_deltas = rcnn_model(roi_crops)
                 
                 # Calculate loss
-                loss, loc_loss, regr_loss = rcnn.calc_loss(
+                loss, loc_loss, regr_loss = rcnn_model.calc_loss(
                         _roi_classes, _roi_deltas, roi_classes, roi_deltas)
                 
                 # Calculate accuracy of predictions
@@ -106,6 +106,6 @@ def train_vrcnn(train_ds, num_epochs=N_EPOCHS,
                     val_regr_loss=regr_loss, 
                     val_acc=accs.mean(), end='\r')
 
-    return rcnn, log
+    return log
 
 

@@ -3,9 +3,9 @@ import torch.nn.functional as F
 import torch
 from data_augment import class_to_id, id_to_class
 from torchvision import models
+from utils import device
 
 background_class = class_to_id['background']
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class RCNN(nn.Module):
 
