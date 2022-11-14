@@ -1,6 +1,6 @@
 import time
 from typing import Dict, List, Tuple
-from utils import get_iou_score, read_image_cv2, get_ss_boxes, plot_image_with_bb
+from utils import get_iou_score, read_image_cv2, get_ss_boxes, device, plot_image_with_bb
 import pandas as pd
 from ast import literal_eval
 import os
@@ -8,8 +8,6 @@ from torch_snippets import *
 from sklearn.model_selection import train_test_split
 from data_augment import class_to_id
 import pickle
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 IOU_POSITIVE_MATCH = 0.3
 MAX_RECT = 2000
