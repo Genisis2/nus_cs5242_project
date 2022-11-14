@@ -108,6 +108,9 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
             log.record(pos, val_loss=loss.item(), val_cls_loss=cls_loss, 
                     val_regr_loss=regr_loss, 
                     val_acc=accs.mean(), end='\r')
+        
+        print("")
+        print(f"Current ave.: trn_loss={np.mean([v for _,v in log.trn_loss])} val_loss={np.mean([v for _,v in log.val_loss])} trn_acc={np.mean([v for _,v in log.trn_acc])} val_acc={np.mean([v for _,v in log.val_acc])}")
 
     return log
 
