@@ -191,7 +191,7 @@ class VRCNNDataset(RCNNDataset):
 
     Main property of this dataset is the idx to img,roi mapping
     """
-    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None):
+    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None, cached_images_limit:int=0):
         super().__init__(img_base_dir, data_df, saved_ds_processing_fp)
 
         # Form a flattened list of the roi crops
@@ -203,6 +203,36 @@ class VRCNNDataset(RCNNDataset):
                 # Track the image source and the roi information
                 self.img_roi_idxs.append((img_idx, roi_idx))
 
+        # Dict to hold cached images
+        self.cached_images_limit = cached_images_limit
+        self.cached_images = {}
+
+    def _get_image(self, crop_img_fn):
+        """Gets the image from disk or from cache if cached"""
+
+        if crop_img_fn in self.cached_images:
+            return self.cached_images[crop_img_fn]
+
+        # Get the image
+        img_filepath = os.path.join(self.img_base_dir, crop_img_fn)
+        img = read_image_cv2(img_filepath)
+
+        # If limit is < 1, then that means don't cache
+        if self.cached_images_limit < 1:
+            return img
+
+        # Else, cache
+        if len(self.cached_images) >= self.cached_images_limit:
+            #  Remove oldest cached if limit reached
+            self.cached_images.pop(next(iter(self.cached_images)))
+        # Now, actually store in cache
+        self.cached_images[crop_img_fn] = img
+
+        return img
+
+    def _clear_cached_images(self):
+        """Empties the cached data"""
+        self.cached_images = {}
 
     def __getitem__(self, idx):
 
@@ -211,8 +241,7 @@ class VRCNNDataset(RCNNDataset):
 
         # Get the image to crop
         crop_img_fn = self.filenames[img_idx]
-        img_filepath = os.path.join(self.img_base_dir, crop_img_fn)
-        img = read_image_cv2(img_filepath)
+        img = self._get_image(crop_img_fn)
         H, W, _ = img.shape
 
         # Get the region proposal crop from the image
