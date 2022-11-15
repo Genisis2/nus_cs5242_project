@@ -16,6 +16,9 @@ FE_INPUT_H = 224
 
 _SAMPLE_SEED = 42
 
+CACHE_IMG_RESIZE_W = 512
+CACHE_IMG_RESIZE_H = 512
+
 # For use in normalization
 # Uses ImageNet values for normalization since we are using a pretrained ResNet50 network
 # Addtnl Ref: https://stackoverflow.com/questions/58151507/why-pytorch-officially-use-mean-0-485-0-456-0-406-and-std-0-229-0-224-0-2
@@ -216,7 +219,7 @@ class VRCNNDataset(RCNNDataset):
         # Get the image (resized to save on space to store more in memory)
         img_filepath = os.path.join(self.img_base_dir, crop_img_fn)
         img = read_image_cv2(img_filepath)
-        img = cv2.resize(img, (FE_INPUT_W, FE_INPUT_H))
+        img = cv2.resize(img, (CACHE_IMG_RESIZE_W, CACHE_IMG_RESIZE_H))
 
         # If limit is < 1, then that means don't cache
         if self.cached_images_limit < 1:
@@ -266,8 +269,8 @@ class VRCNNDataset(RCNNDataset):
         for ix in range(len(batch)):
             _roi_crop, _roi_class, _roi_delta = batch[ix]
 
-            # No need to resize roi to input size of 224x224 
-            # since source image was already resized down
+            # Resize to input size of 224x224
+            _roi_crop = cv2.resize(_roi_crop, (FE_INPUT_W, FE_INPUT_H))
             # Turn to (C,H,W) from (H,W,C)
             _roi_crop = torch.tensor(_roi_crop).permute(2,0,1)
             # Turn pixel values as a % of 255's
