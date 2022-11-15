@@ -14,15 +14,15 @@ class RCNN(nn.Module):
 
         # Use a resnet backbone
         resnet_backbone = models.resnet50(weights = models.ResNet50_Weights.IMAGENET1K_V2)
-        # Output shape will be (1024, 14, 14)
-        model = torch.nn.Sequential(*(list(resnet_backbone.children())[:-3]))
+        # Take all except the classifier layer at the end
+        model = torch.nn.Sequential(*(list(resnet_backbone.children())[:-1]))
         for param in model.parameters():
             param.requires_grad = False
         model.eval().to(device)
         self.backbone = model
         
         # Flattened shape of output from resnet50
-        feature_dim = 1024 * 14 * 14
+        feature_dim = 2048
         # 2 FC layers
         self.fc1 = nn.Linear(feature_dim, 4096)
         self.fc2 = nn.Linear(4096, 4096)
