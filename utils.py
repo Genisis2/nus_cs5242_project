@@ -27,14 +27,14 @@ def plot_image_with_bb(image, bboxs: list):
 
     plt.show()
 
-def plot_image_with_bb_and_label(image, bbox_labels: list, id_to_label: dict, title=None):
+def plot_image_with_bb_and_label(image, bbox_labels: list, id_to_label: dict, title=None, text_sz=10):
     bbs = []
     labels = []
     for bbox_label in bbox_labels:
         xmin, ymin, xmax, ymax, label = bbox_label
         bbs.append((xmin, ymin, xmax, ymax))
         labels.append(id_to_label[label])
-    snippets.show(image, bbs=bbs, texts=labels, sz=10, title=title)
+    snippets.show(image, bbs=bbs, texts=labels, sz=10, title=title, text_sz=text_sz)
 
 def get_iou_score(bbox, ssbox):
     xmin_bb, ymin_bb, xmax_bb, ymax_bb= bbox[:4]
