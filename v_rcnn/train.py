@@ -127,7 +127,7 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
 
         print("")
         print(f"Current ave.: trn_loss={np.mean([v for _,v in log.trn_loss])} val_loss={np.mean([v for _,v in log.val_loss])} trn_acc={np.mean([v for _,v in log.trn_acc])} val_acc={np.mean([v for _,v in log.val_acc])}")
-        print(f"Getting crops batch from dataloader totalled {total_time_getting_crops} this epoch.")
+        print(f"Time taken getting roi crops this epoch: {total_time_getting_crops}")
 
     return log
 
