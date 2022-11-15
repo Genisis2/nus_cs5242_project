@@ -194,22 +194,37 @@ class VRCNNDataset(RCNNDataset):
     def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None):
         super().__init__(img_base_dir, data_df, saved_ds_processing_fp)
 
-    def __getitem__(self, img_idx):
-        
-        # Get the image at this idx
-        img_filepath = os.path.join(self.img_base_dir, self.filenames[img_idx])
+        # Form a flattened list of the roi crops
+        self.img_roi_idxs = []
+        for img_idx in range(len(self.filenames)):
+            # Get rois of image
+            img_rois = self.rois[img_idx]
+            for roi_idx in range(len(img_rois)):
+                # Track the image source and the roi information
+                self.img_roi_idxs.append((img_idx, roi_idx))
+
+
+    def __getitem__(self, idx):
+
+        # Get the roi crop at this idx
+        img_idx, roi_idx = self.img_roi_idxs[idx]
+
+        # Get the image to crop
+        crop_img_fn = self.filenames[img_idx]
+        img_filepath = os.path.join(self.img_base_dir, crop_img_fn)
         img = read_image_cv2(img_filepath)
         H, W, _ = img.shape
 
-        # Get the region proposals for this image
-        rois = (self.rois[img_idx] * np.array([W,H,W,H])).astype(np.uint16)
-        roi_crops = [img[y:Y,x:X] for (x,y,X,Y) in rois]
+        # Get the region proposal crop from the image
+        crop_roi = self.rois[img_idx][roi_idx]
+        x,y,X,Y = (crop_roi * np.array([W,H,W,H])).astype(np.uint16)
+        roi_crop = img[y:Y,x:X]
 
         # Get the roi classes and roi offsets
-        roi_classes = self.roi_classes[img_idx]
-        roi_deltas = self.roi_deltas[img_idx]
+        roi_class = self.roi_classes[img_idx][roi_idx]
+        roi_delta = self.roi_deltas[img_idx][roi_idx]
 
-        return roi_crops, roi_classes, roi_deltas
+        return roi_crop, roi_class, roi_delta
 
     def collate_fn(self, batch):
 
@@ -219,27 +234,26 @@ class VRCNNDataset(RCNNDataset):
 
         # Process batch
         for ix in range(len(batch)):
-            _roi_crops, _roi_classes, _roi_deltas = batch[ix]
+            _roi_crop, _roi_class, _roi_delta = batch[ix]
 
             # Resize to input size of 224x224
-            _roi_crops = [cv2.resize(crop, (FE_INPUT_W, FE_INPUT_H)) for crop in _roi_crops]
-            for _roi_crop in _roi_crops:
-                # Turn to (C,H,W) from (H,W,C)
-                _roi_crop = torch.tensor(_roi_crop).permute(2,0,1)
-                # Turn pixel values as a % of 255's
-                _roi_crop = _roi_crop/255.
-                # Normalize using normalization values of ImageNet
-                _roi_crop = imagenet_normalize(_roi_crop)
-                # Make sure we are dealing with a float tensor
-                _roi_crop = _roi_crop.to(device).float()
-                # Expand first dim so torch.cat works later
-                _roi_crop = torch.unsqueeze(_roi_crop, 0)
-                # Append to list
-                roi_crops.append(_roi_crop)
+            _roi_crop = cv2.resize(_roi_crop, (FE_INPUT_W, FE_INPUT_H))
+            # Turn to (C,H,W) from (H,W,C)
+            _roi_crop = torch.tensor(_roi_crop).permute(2,0,1)
+            # Turn pixel values as a % of 255's
+            _roi_crop = _roi_crop/255.
+            # Normalize using normalization values of ImageNet
+            _roi_crop = imagenet_normalize(_roi_crop)
+            # Make sure we are dealing with a float tensor
+            _roi_crop = _roi_crop.to(device).float()
+            # Expand first dim so torch.cat works later
+            _roi_crop = torch.unsqueeze(_roi_crop, 0)
+            # Append to list
+            roi_crops.append(_roi_crop)
             
-            # Just extend the lists with the rois
-            roi_classes.extend(_roi_classes)
-            roi_deltas.extend(_roi_deltas)
+            # Append other roi info into the lists
+            roi_classes.append(_roi_class)
+            roi_deltas.append(_roi_delta)
         
         # Check. Expect all lists to have the len of rois
         assert (len(roi_crops) == len(roi_classes) 
@@ -253,7 +267,7 @@ class VRCNNDataset(RCNNDataset):
         return roi_crops, roi_classes, roi_deltas
     
     def __len__(self): 
-        return len(self.filenames)
+        return len(self.img_roi_idxs)
 
 def create_train_test_dataset(img_root_dir:str, pd_csv_path:str, limit:int=None) -> Tuple[Dataset, Dataset]:
     """Creates the train and test datasets for V-RCNN training and eval

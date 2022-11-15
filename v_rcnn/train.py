@@ -1,3 +1,4 @@
+import time
 from typing import Tuple
 from torchvision import datasets, transforms
 import torch
@@ -14,7 +15,7 @@ BATCH_SIZE = 32
 LR = 1e-3
 
 def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS, 
-                batch_size=BATCH_SIZE, learning_rate=LR) -> Tuple[nn.Module, Report]:
+                batch_size=BATCH_SIZE, learning_rate=LR) -> Report:
     """Trains a vanilla R-CNN model
     
     Parameters:
@@ -53,13 +54,19 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
     optimizer = torch.optim.SGD(rcnn_model.parameters(), lr=learning_rate)
 
     # Start training
-    log =  Report(num_epochs)
+    log = Report(num_epochs)
     for epoch in range(num_epochs):
+
+        # Keep track of how long it took to get crops in this epoch
+        total_time_getting_crops = 0
 
         # Train model
         total_inputs = len(train_loader)
         pos = epoch
+        getting_crop_start_time = time.perf_counter()
         for inputs in train_loader:
+            getting_crop_time_elapsed = time.perf_counter() - getting_crop_start_time
+            total_time_getting_crops += getting_crop_time_elapsed
             
             # Unpack batch
             roi_crops, roi_classes, roi_deltas = inputs
@@ -83,11 +90,17 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
             log.record(pos, trn_loss=loss.item(), trn_cls_loss=cls_loss, 
                     trn_regr_loss=regr_loss, 
                     trn_acc=accs.mean(), end='\r')
+
+            # Keep track for next query of dataset batch
+            getting_crop_start_time = time.perf_counter()
         
         # Validate
         total_inputs = len(val_loader)
         pos = epoch
+        getting_crop_start_time = time.perf_counter()
         for inputs in val_loader:
+            getting_crop_time_elapsed = time.perf_counter() - getting_crop_start_time
+            total_time_getting_crops += getting_crop_time_elapsed
             
             # Unpack batch
             roi_crops, roi_classes, roi_deltas = inputs
@@ -108,8 +121,13 @@ def train_vrcnn(rcnn_model, train_ds, num_epochs=N_EPOCHS,
             log.record(pos, val_loss=loss.item(), val_cls_loss=cls_loss, 
                     val_regr_loss=regr_loss, 
                     val_acc=accs.mean(), end='\r')
+
+            # Keep track for next query of dataset batch
+            getting_crop_start_time = time.perf_counter()
+
         print("")
         print(f"Current ave.: trn_loss={np.mean([v for _,v in log.trn_loss])} val_loss={np.mean([v for _,v in log.val_loss])} trn_acc={np.mean([v for _,v in log.trn_acc])} val_acc={np.mean([v for _,v in log.val_acc])}")
+        print(f"Getting crops batch from dataloader totalled {total_time_getting_crops} this epoch.")
 
     return log
 

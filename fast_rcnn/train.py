@@ -14,7 +14,7 @@ BATCH_SIZE = 32
 LR = 1e-3
 
 def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS, 
-                batch_size=BATCH_SIZE, learning_rate=LR) -> Tuple[nn.Module, Report]:
+                batch_size=BATCH_SIZE, learning_rate=LR) -> Report:
     """Trains a vanilla R-CNN model
     
     Parameters:
@@ -53,7 +53,7 @@ def train_fastrcnn(fastrcnn_model, train_ds, num_epochs=N_EPOCHS,
     optimizer = torch.optim.SGD(fastrcnn_model.parameters(), lr=learning_rate)
 
     # Start training
-    log =  Report(num_epochs)
+    log = Report(num_epochs)
     for epoch in range(num_epochs):
 
         # Train model
