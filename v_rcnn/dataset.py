@@ -207,15 +207,16 @@ class VRCNNDataset(RCNNDataset):
         self.cached_images_limit = cached_images_limit
         self.cached_images = {}
 
-    def _get_image(self, crop_img_fn):
+    def _get_image_resized(self, crop_img_fn):
         """Gets the image from disk or from cache if cached"""
 
         if crop_img_fn in self.cached_images:
             return self.cached_images[crop_img_fn]
 
-        # Get the image
+        # Get the image (resized to save on space to store more in memory)
         img_filepath = os.path.join(self.img_base_dir, crop_img_fn)
         img = read_image_cv2(img_filepath)
+        img = cv2.resize(img, (FE_INPUT_W, FE_INPUT_H))
 
         # If limit is < 1, then that means don't cache
         if self.cached_images_limit < 1:
@@ -241,7 +242,7 @@ class VRCNNDataset(RCNNDataset):
 
         # Get the image to crop
         crop_img_fn = self.filenames[img_idx]
-        img = self._get_image(crop_img_fn)
+        img = self._get_image_resized(crop_img_fn)
         H, W, _ = img.shape
 
         # Get the region proposal crop from the image
@@ -265,8 +266,8 @@ class VRCNNDataset(RCNNDataset):
         for ix in range(len(batch)):
             _roi_crop, _roi_class, _roi_delta = batch[ix]
 
-            # Resize to input size of 224x224
-            _roi_crop = cv2.resize(_roi_crop, (FE_INPUT_W, FE_INPUT_H))
+            # No need to resize roi to input size of 224x224 
+            # since source image was already resized down
             # Turn to (C,H,W) from (H,W,C)
             _roi_crop = torch.tensor(_roi_crop).permute(2,0,1)
             # Turn pixel values as a % of 255's
