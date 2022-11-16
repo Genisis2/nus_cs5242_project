@@ -7,3 +7,4 @@ matplotlib
 torch_snippets
 torchvision
 numpy
+torchmetrics
