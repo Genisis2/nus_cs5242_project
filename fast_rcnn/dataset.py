@@ -13,8 +13,8 @@ class FastRCNNDataset(RCNNDataset):
 
     Doesn't crop image like RCNNDataset. Only gets the roi and roi_src_idxs.
     """
-    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None):
-        super().__init__(img_base_dir, data_df, saved_ds_processing_fp)
+    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, is_test:bool=False, saved_ds_processing_fp:str=None):
+        super().__init__(img_base_dir, data_df, is_test, saved_ds_processing_fp)
 
     def __getitem__(self, img_idx):
         
@@ -95,7 +95,7 @@ def create_train_test_dataset_from_pickle(
     - train_dataset, train_dataset both of type FastRCNNDataset
     """
     # Create datasets for train and test
-    train_dataset = FastRCNNDataset(img_root_dir, None, pickle_train_ds)
-    test_dataset = FastRCNNDataset(img_root_dir, None, pickle_test_ds)
+    train_dataset = FastRCNNDataset(img_root_dir, None, False, pickle_train_ds)
+    test_dataset = FastRCNNDataset(img_root_dir, None, True, pickle_test_ds)
 
     return train_dataset, test_dataset

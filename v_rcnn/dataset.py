@@ -27,7 +27,7 @@ imagenet_normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 
 class RCNNDataset(Dataset):
 
-    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None):
+    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, is_test:bool=False, saved_ds_processing_fp:str=None):
         """
         Parameters:
         - `img_base_dir`:str
@@ -35,11 +35,14 @@ class RCNNDataset(Dataset):
         - `data_df`:pd.DataFrame
             - DataFrame holding information from df2.csv
             - Set to `None` if will be using `saved_ds_processing_fp`
+        - `is_test`:bool
+            - Indicates if the dataset holds test data. Default false
         - `saved_ds_processing_fp`
             - Path to the pickled dict holding data of this dataset
         """
         
         self.img_base_dir = img_base_dir
+        self.is_test = is_test
         
         # Takes very long to process so use saved processing if possible
         if saved_ds_processing_fp is not None:
@@ -106,6 +109,16 @@ class RCNNDataset(Dataset):
                 # Skip ssboxes that are too small or too large
                 ssbox_area = (ss_X - ss_x) * (ss_Y - ss_y)
                 if ssbox_area < 0.05*img_area or ssbox_area > img_area:
+                    continue
+                
+                # If test data, stop here. Don't filter or label based on IoU.
+                # Keep all proposals in roi
+                if self.is_test:
+                    # Get roi bounds as % of width and height
+                    roi = ssbox / np.array([W,H,W,H])
+                    rois.append(roi)
+                    roi_deltas.append(np.array([0.,0.,0.,0.])) # Dummy value
+                    roi_classes.append(class_to_id['background']) # Dummy value
                     continue
                 
                 # Find bbox that this ssbox best matches
@@ -194,8 +207,8 @@ class VRCNNDataset(RCNNDataset):
 
     Main property of this dataset is the idx to img,roi mapping
     """
-    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, saved_ds_processing_fp:str=None, cached_images_limit:int=0):
-        super().__init__(img_base_dir, data_df, saved_ds_processing_fp)
+    def __init__(self, img_base_dir: str, data_df:pd.DataFrame, is_test:bool=False, saved_ds_processing_fp:str=None, cached_images_limit:int=0):
+        super().__init__(img_base_dir, data_df, is_test, saved_ds_processing_fp)
 
         # Form a flattened list of the roi crops
         self.img_roi_idxs = []
@@ -333,8 +346,8 @@ def create_train_test_dataset(img_root_dir:str, pd_csv_path:str, limit:int=None)
     )
 
     # Create datasets for train and test
-    train_dataset = VRCNNDataset(img_root_dir, train_data_df)
-    test_dataset = VRCNNDataset(img_root_dir, test_data_df)
+    train_dataset = VRCNNDataset(img_root_dir, train_data_df, is_test=False)
+    test_dataset = VRCNNDataset(img_root_dir, test_data_df, is_test=True)
 
     return train_dataset, test_dataset
 
@@ -354,7 +367,7 @@ def create_train_test_dataset_from_pickle(
     - train_dataset, train_dataset both of type VRCNNDataset
     """
     # Create datasets for train and test
-    train_dataset = VRCNNDataset(img_root_dir, None, pickle_train_ds)
-    test_dataset = VRCNNDataset(img_root_dir, None, pickle_test_ds)
+    train_dataset = VRCNNDataset(img_root_dir, None, False, pickle_train_ds)
+    test_dataset = VRCNNDataset(img_root_dir, None, True, pickle_test_ds)
 
     return train_dataset, test_dataset
