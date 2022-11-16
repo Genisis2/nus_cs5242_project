@@ -4,7 +4,7 @@ from torch_snippets import *
 from utils import device, read_image_cv2
 import time
 
-def predict_on_test_set(frcnn_model, test_ds):
+def frcnn_predict_on_test_set(frcnn_model, test_ds):
 
     gts = []
     preds = []
